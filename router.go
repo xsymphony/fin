@@ -1,4 +1,4 @@
-package main
+package fin
 
 import (
     "fmt"
@@ -36,17 +36,4 @@ func (r *Router) HandleRequest(ctx *fasthttp.RequestCtx) {
         ctx.WriteString("404 NOT FOUND")
     }
     h(ctx)
-}
-
-func main() {
-    r := NewRouter("/api")
-    {
-        r.AddRouter("/v1/hello", func(ctx *fasthttp.RequestCtx) {
-            ctx.WriteString("hello world")
-        })
-        r.AddRouter("/v2/hello",func(ctx *fasthttp.RequestCtx) {
-            ctx.WriteString("你好")
-        })
-    }
-    fasthttp.ListenAndServe(":8080", r.HandleRequest)
 }
