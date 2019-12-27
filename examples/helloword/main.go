@@ -6,14 +6,18 @@ import (
 )
 
 func main() {
-    r := fin.NewRouter("/api")
+    r := fin.Default("/api")
+    r.Use(fin.AllowMethodMiddleware("GET"))
     {
-        r.AddRouter("/v1/hello", func(ctx *fasthttp.RequestCtx) {
+        r.ANY("/v1/hello", fin.NewAdapter(func(ctx *fasthttp.RequestCtx) {
             ctx.WriteString("hello world")
-        })
-        r.AddRouter("/v2/hello",func(ctx *fasthttp.RequestCtx) {
+        }))
+        r.ANY("/v2/hello", fin.NewAdapter(func(ctx *fasthttp.RequestCtx) {
             ctx.WriteString("你好")
-        })
+        }))
+        r.GET("/panic", fin.NewAdapter(func(ctx *fasthttp.RequestCtx) {
+            panic("just for panic")
+        }))
     }
     fasthttp.ListenAndServe(":8080", r.HandleRequest)
 }
