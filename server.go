@@ -1,22 +1,52 @@
 package main
 
-import "github.com/valyala/fasthttp"
+import (
+    "fmt"
 
+    "github.com/valyala/fasthttp"
+)
 
-// dispatch 是路由分发的原型
-// 根据请求路由执行不同的处理逻辑
-func dispatch(ctx *fasthttp.RequestCtx) {
-    switch string(ctx.Path()) {
-    case "/api/v1/hello":
-        ctx.WriteString("hello world")
-    case "/api/v2/hello":
-        ctx.WriteString("你好")
-    default:
-        ctx.SetStatusCode(404)
-        ctx.WriteString("404 NOT FOUND")
+type Router struct {
+    prefix string                               // prefix是整个路由的公共前缀
+    handlers map[string]fasthttp.RequestHandler // 存放所有handle函数与url的映射关系
+}
+
+func NewRouter(prefix string) *Router {
+    return &Router{
+        prefix: prefix,
+        handlers: make(map[string]fasthttp.RequestHandler),
     }
 }
 
+// AddRouter 注册一个新的路由函数
+func (r *Router) AddRouter(uri string, h fasthttp.RequestHandler) {
+    uri = r.prefix + uri
+    if _, ok := r.handlers[uri]; ok {
+        panic(fmt.Sprintf("duplicate uri %s", uri))
+    }
+    r.handlers[uri] = h
+}
+
+// HandleRequest 作为fasthttp总的入口函数，进行路由分发
+func (r *Router) HandleRequest(ctx *fasthttp.RequestCtx) {
+    uri := string(ctx.Path())
+    h, ok := r.handlers[uri]
+    if !ok {
+        ctx.SetStatusCode(404)
+        ctx.WriteString("404 NOT FOUND")
+    }
+    h(ctx)
+}
+
 func main() {
-    fasthttp.ListenAndServe(":8080", dispatch)
+    r := NewRouter("/api")
+    {
+        r.AddRouter("/v1/hello", func(ctx *fasthttp.RequestCtx) {
+            ctx.WriteString("hello world")
+        })
+        r.AddRouter("/v2/hello",func(ctx *fasthttp.RequestCtx) {
+            ctx.WriteString("你好")
+        })
+    }
+    fasthttp.ListenAndServe(":8080", r.HandleRequest)
 }
