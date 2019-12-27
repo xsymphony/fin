@@ -9,10 +9,10 @@ import (
 )
 
 func TestNewRouter(t *testing.T) {
-    r := NewRouter("")
-    r.AddRouter("/hello", func(ctx *fasthttp.RequestCtx) {
+    r := New("")
+    r.AddRouter("/hello", NewAdapter(func(ctx *fasthttp.RequestCtx) {
         ctx.WriteString("hello")
-    })
+    }))
     go func() {
         fasthttp.ListenAndServe(":8080", r.HandleRequest)
     }()
