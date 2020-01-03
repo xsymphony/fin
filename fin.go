@@ -9,7 +9,7 @@ type Engine struct {
 func New() *Engine {
 	engine := &Engine{
 		Router: Router{
-			prefix:   "",
+			path:     "",
 			handlers: make(map[string]fasthttp.RequestHandler),
 		},
 	}

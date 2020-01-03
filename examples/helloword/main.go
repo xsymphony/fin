@@ -8,12 +8,21 @@ import (
 func main() {
 	r := fin.New()
 	{
-		r.AddRouter("/api/v1/hello", func(ctx *fasthttp.RequestCtx) {
-			ctx.WriteString("hello world")
-		})
-		r.AddRouter("/api/v2/hello", func(ctx *fasthttp.RequestCtx) {
-			ctx.WriteString("你好")
-		})
+		api := r.Group("/api")
+		{
+			v1 := api.Group("/v1")
+			{
+				v1.AddRouter("/hello", func(ctx *fasthttp.RequestCtx) {
+					ctx.WriteString("hello world")
+				})
+			}
+			v2 := api.Group("/v2")
+			{
+				v2.AddRouter("/hello", func(ctx *fasthttp.RequestCtx) {
+					ctx.WriteString("你好")
+				})
+			}
+		}
 	}
 	r.Run(":8080")
 }
