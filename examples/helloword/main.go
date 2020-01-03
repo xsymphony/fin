@@ -6,14 +6,14 @@ import (
 )
 
 func main() {
-	r := fin.NewRouter("/api")
+	r := fin.New()
 	{
-		r.AddRouter("/v1/hello", func(ctx *fasthttp.RequestCtx) {
+		r.AddRouter("/api/v1/hello", func(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString("hello world")
 		})
-		r.AddRouter("/v2/hello", func(ctx *fasthttp.RequestCtx) {
+		r.AddRouter("/api/v2/hello", func(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString("你好")
 		})
 	}
-	fasthttp.ListenAndServe(":8080", r.HandleRequest)
+	r.Run(":8080")
 }

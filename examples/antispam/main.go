@@ -27,7 +27,7 @@ func replaceWord(c *fasthttp.RequestCtx) {
 	if len(index) == 0 {
 		resp, _ := json.Marshal(map[string]interface{}{
 			"code":    0,
-			"message": "ossk",
+			"message": "ok",
 			"data": map[string]interface{}{
 				"words":    words,
 				"replaced": "",
@@ -70,9 +70,9 @@ func main() {
 	automaton.Add("蛤")
 	automaton.Build()
 
-	r := fin.NewRouter("/api/v1")
+	r := fin.New()
 	{
-		r.AddRouter("/replace", replaceWord)
+		r.AddRouter("/api/v1/replace", replaceWord)
 	}
-	fasthttp.ListenAndServe(":8080", r.HandleRequest)
+	r.Run(":8080")
 }
