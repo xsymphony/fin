@@ -72,7 +72,7 @@ func main() {
 
 	r := fin.New()
 	{
-		r.AddRouter("/api/v1/replace", replaceWord)
+		r.Handle("/api/v1/replace", "POST", replaceWord)
 	}
 	r.Run(":8080")
 }
