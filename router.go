@@ -1,9 +1,24 @@
 package fin
 
+type IRouter interface {
+	Handle(string, string, HandlerFunc)
+	ANY(string, HandlerFunc)
+	GET(string, HandlerFunc)
+	POST(string, HandlerFunc)
+	DELETE(string, HandlerFunc)
+	PATCH(string, HandlerFunc)
+	PUT(string, HandlerFunc)
+	OPTIONS(string, HandlerFunc)
+	HEAD(string, HandlerFunc)
+}
+
 type Router struct {
 	engine *Engine
 	path   string
 }
+
+// 检查Router是否实现了IRouter接口
+var _ IRouter = &Router{}
 
 // handle 注册一个新的路由函数
 func (r *Router) handle(relativePath string, method string, h HandlerFunc) {
@@ -32,6 +47,18 @@ func (r *Router) DELETE(relativePath string, h HandlerFunc) {
 
 func (r *Router) PUT(relativePath string, h HandlerFunc) {
 	r.Handle(relativePath, "PUT", h)
+}
+
+func (r *Router) PATCH(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "PATCH", h)
+}
+
+func (r *Router) HEAD(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "HEAD", h)
+}
+
+func (r *Router) OPTIONS(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "OPTIONS", h)
 }
 
 func (r *Router) ANY(relativePath string, h HandlerFunc) {

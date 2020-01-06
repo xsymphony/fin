@@ -6,11 +6,22 @@ import (
 
 type HandlerFunc func(ctx *Context)
 
+type IEngine interface {
+	IRouter
+
+	Run(string) error
+	Shutdown() error
+}
+
 type Engine struct {
 	Router
 
+	server *fasthttp.Server
+
 	handlers trees
 }
+
+var _ IEngine = &Engine{}
 
 func New() *Engine {
 	engine := &Engine{
@@ -57,5 +68,13 @@ func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
 }
 
 func (e *Engine) Run(addr string) error {
-	return fasthttp.ListenAndServe(addr, e.dispatch)
+	server := &fasthttp.Server{
+		Handler: e.dispatch,
+	}
+	e.server = server
+	return server.ListenAndServe(addr)
+}
+
+func (e *Engine) Shutdown() error {
+	return e.server.Shutdown()
 }
