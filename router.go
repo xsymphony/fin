@@ -1,39 +1,59 @@
 package fin
 
-import (
-    "fmt"
-
-    "github.com/valyala/fasthttp"
-)
-
 type Router struct {
-    prefix string                               // prefix是整个路由的公共前缀
-    handlers map[string]fasthttp.RequestHandler // 存放所有handle函数与url的映射关系
+	engine *Engine
+	path   string
 }
 
-func NewRouter(prefix string) *Router {
-    return &Router{
-        prefix: prefix,
-        handlers: make(map[string]fasthttp.RequestHandler),
-    }
+// handle 注册一个新的路由函数
+func (r *Router) handle(relativePath string, method string, h HandlerFunc) {
+	// 计算路由的绝对路径
+	path := r.path + relativePath
+	// 注册路由
+	r.engine.addRoute(path, method, h)
 }
 
-// AddRouter 注册一个新的路由函数
-func (r *Router) AddRouter(uri string, h fasthttp.RequestHandler) {
-    uri = r.prefix + uri
-    if _, ok := r.handlers[uri]; ok {
-        panic(fmt.Sprintf("duplicate uri %s", uri))
-    }
-    r.handlers[uri] = h
+// Handle 注册一个新的路由函数
+func (r *Router) Handle(relativePath string, method string, h HandlerFunc) {
+	r.handle(relativePath, method, h)
 }
 
-// HandleRequest 作为fasthttp总的入口函数，进行路由分发
-func (r *Router) HandleRequest(ctx *fasthttp.RequestCtx) {
-    uri := string(ctx.Path())
-    h, ok := r.handlers[uri]
-    if !ok {
-        ctx.SetStatusCode(404)
-        ctx.WriteString("404 NOT FOUND")
-    }
-    h(ctx)
+func (r *Router) GET(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "GET", h)
+}
+
+func (r *Router) POST(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "POST", h)
+}
+
+func (r *Router) DELETE(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "DELETE", h)
+}
+
+func (r *Router) PUT(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "PUT", h)
+}
+
+func (r *Router) ANY(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "GET", h)
+	r.Handle(relativePath, "POST", h)
+	r.Handle(relativePath, "DELETE", h)
+	r.Handle(relativePath, "PUT", h)
+	r.Handle(relativePath, "PATCH", h)
+	r.Handle(relativePath, "HEAD", h)
+	r.Handle(relativePath, "OPTIONS", h)
+	r.Handle(relativePath, "CONNECT", h)
+	r.Handle(relativePath, "TRACE", h)
+}
+
+// Group新建一个路由分组
+func (r *Router) Group(relativePath string) *Router {
+	// 计算路由的绝对路径
+	path := r.path + relativePath
+	router := &Router{
+		path:   path,
+		engine: r.engine,
+	}
+
+	return router
 }
