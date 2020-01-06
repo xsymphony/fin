@@ -4,7 +4,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-type HandlerFunc fasthttp.RequestHandler
+type HandlerFunc func(ctx *Context)
 
 type Engine struct {
 	Router
@@ -32,12 +32,17 @@ func (e *Engine) addRoute(path string, method string, h HandlerFunc) {
 	handlers.addRoute(path, h)
 }
 
-func (e *Engine) dispatch(ctx *fasthttp.RequestCtx) {
+func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
+	ctx := &Context{
+		RequestCtx: fastCtx,
+		Response:   &fastCtx.Response,
+		Request:    &fastCtx.Request,
+	}
 	uri := string(ctx.Path())
 	method := string(ctx.Method())
 	handlers := e.handlers.get(method)
 	if handlers == nil {
-		ctx.SetStatusCode(404)
+		fastCtx.SetStatusCode(404)
 		ctx.WriteString("404 NOT FOUND")
 		return
 	}
@@ -47,6 +52,7 @@ func (e *Engine) dispatch(ctx *fasthttp.RequestCtx) {
 		ctx.WriteString("404 NOT FOUND")
 		return
 	}
+
 	h(ctx)
 }
 

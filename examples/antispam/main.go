@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/valyala/fasthttp"
 	"github.com/xsymphony/ac"
 	"github.com/xsymphony/fin"
 )
@@ -15,7 +14,7 @@ type replaceSensitiveRequest struct {
 	Symbol   string `json:"symbol"`
 }
 
-func replaceWord(c *fasthttp.RequestCtx) {
+func replaceWord(c *fin.Context) {
 	var req replaceSensitiveRequest
 	if err := json.Unmarshal(c.Request.Body(), &req); err != nil {
 		c.SetStatusCode(499)

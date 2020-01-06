@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/valyala/fasthttp"
 	"github.com/xsymphony/fin"
 )
 
@@ -12,13 +11,13 @@ func main() {
 		{
 			v1 := api.Group("/v1")
 			{
-				v1.GET("/hello", func(ctx *fasthttp.RequestCtx) {
+				v1.GET("/hello", func(ctx *fin.Context) {
 					ctx.WriteString("hello world")
 				})
 			}
 			v2 := api.Group("/v2")
 			{
-				v2.GET("/hello", func(ctx *fasthttp.RequestCtx) {
+				v2.GET("/hello", func(ctx *fin.Context) {
 					ctx.WriteString("你好")
 				})
 			}
