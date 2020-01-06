@@ -10,7 +10,7 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	r := New()
-	r.Handle("/hello", "GET", func(ctx *fasthttp.RequestCtx) {
+	r.ANY("/hello", func(ctx *fasthttp.RequestCtx) {
 		ctx.WriteString("hello")
 	})
 	go func() {

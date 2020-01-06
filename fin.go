@@ -1,15 +1,15 @@
 package fin
 
 import (
-	"fmt"
-
 	"github.com/valyala/fasthttp"
 )
+
+type HandlerFunc fasthttp.RequestHandler
 
 type Engine struct {
 	Router
 
-	handlers map[string]map[string]fasthttp.RequestHandler
+	handlers trees
 }
 
 func New() *Engine {
@@ -17,32 +17,26 @@ func New() *Engine {
 		Router: Router{
 			path: "",
 		},
-		handlers: make(map[string]map[string]fasthttp.RequestHandler),
 	}
 	engine.Router.engine = engine
 	return engine
 }
 
-func (e *Engine) addRoute(path string, method string, h fasthttp.RequestHandler) {
+func (e *Engine) addRoute(path string, method string, h HandlerFunc) {
 	// 获取此方法下的所有路由函数map，不存在则新建
-	handlers, ok := e.handlers[method]
-	if !ok {
-		handlers = make(map[string]fasthttp.RequestHandler)
-		e.handlers[method] = handlers
+	handlers := e.handlers.get(method)
+	if handlers == nil {
+		handlers = make(node)
+		e.handlers = append(e.handlers, tree{method: method, node: handlers})
 	}
-	// 从根router中查找路由是否存在
-	if _, ok := handlers[path]; ok {
-		panic(fmt.Sprintf("duplicate uri %s", path))
-	}
-	// 注册路由函数到根router中
-	handlers[path] = h
+	handlers.addRoute(path, h)
 }
 
 func (e *Engine) dispatch(ctx *fasthttp.RequestCtx) {
 	uri := string(ctx.Path())
 	method := string(ctx.Method())
-	handlers, ok := e.handlers[method]
-	if !ok {
+	handlers := e.handlers.get(method)
+	if handlers == nil {
 		ctx.SetStatusCode(404)
 		ctx.WriteString("404 NOT FOUND")
 		return

@@ -1,16 +1,12 @@
 package fin
 
-import (
-	"github.com/valyala/fasthttp"
-)
-
 type Router struct {
 	engine *Engine
 	path   string
 }
 
 // handle 注册一个新的路由函数
-func (r *Router) handle(relativePath string, method string, h fasthttp.RequestHandler) {
+func (r *Router) handle(relativePath string, method string, h HandlerFunc) {
 	// 计算路由的绝对路径
 	path := r.path + relativePath
 	// 注册路由
@@ -18,8 +14,36 @@ func (r *Router) handle(relativePath string, method string, h fasthttp.RequestHa
 }
 
 // Handle 注册一个新的路由函数
-func (r *Router) Handle(relativePath string, method string, h fasthttp.RequestHandler) {
+func (r *Router) Handle(relativePath string, method string, h HandlerFunc) {
 	r.handle(relativePath, method, h)
+}
+
+func (r *Router) GET(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "GET", h)
+}
+
+func (r *Router) POST(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "POST", h)
+}
+
+func (r *Router) DELETE(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "DELETE", h)
+}
+
+func (r *Router) PUT(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "PUT", h)
+}
+
+func (r *Router) ANY(relativePath string, h HandlerFunc) {
+	r.Handle(relativePath, "GET", h)
+	r.Handle(relativePath, "POST", h)
+	r.Handle(relativePath, "DELETE", h)
+	r.Handle(relativePath, "PUT", h)
+	r.Handle(relativePath, "PATCH", h)
+	r.Handle(relativePath, "HEAD", h)
+	r.Handle(relativePath, "OPTIONS", h)
+	r.Handle(relativePath, "CONNECT", h)
+	r.Handle(relativePath, "TRACE", h)
 }
 
 // Group新建一个路由分组

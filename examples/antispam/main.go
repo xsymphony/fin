@@ -72,7 +72,7 @@ func main() {
 
 	r := fin.New()
 	{
-		r.Handle("/api/v1/replace", "POST", replaceWord)
+		r.POST("/api/v1/replace", replaceWord)
 	}
 	r.Run(":8080")
 }
