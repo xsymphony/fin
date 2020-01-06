@@ -2,9 +2,9 @@ package fin
 
 import "fmt"
 
-type node map[string]HandlerFunc
+type node map[string][]HandlerFunc
 
-func (n node) addRoute(path string, h HandlerFunc) {
+func (n node) addRoute(path string, h ...HandlerFunc) {
 	if _, ok := n[path]; ok {
 		panic(fmt.Sprintf("duplicate uri %s", path))
 	}
