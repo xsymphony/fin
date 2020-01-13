@@ -7,10 +7,12 @@ import (
 )
 
 func main() {
-	beforeFunc := func(ctx *fin.Context) {
+	hookFunc := func(ctx *fin.Context) {
+		// 在执行下个handler函数之前打印请求信息
 		fmt.Println("start serve request: ", string(ctx.Path()))
-	}
-	afterFunc := func(ctx *fin.Context) {
+		// 调用Next()执行后面的handler函数
+		ctx.Next()
+		// 后面的handler函数执行完毕后打印请求信息
 		fmt.Println("after serve request: ", string(ctx.Path()))
 	}
 
@@ -20,15 +22,15 @@ func main() {
 		{
 			v1 := api.Group("/v1")
 			{
-				v1.GET("/hello", beforeFunc, func(ctx *fin.Context) {
+				v1.GET("/hello", hookFunc, func(ctx *fin.Context) {
 					ctx.WriteString("hello world")
-				}, afterFunc)
+				})
 			}
 			v2 := api.Group("/v2")
 			{
-				v2.GET("/hello", beforeFunc, func(ctx *fin.Context) {
+				v2.GET("/hello", hookFunc, func(ctx *fin.Context) {
 					ctx.WriteString("你好")
-				}, afterFunc)
+				})
 			}
 		}
 	}
