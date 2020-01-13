@@ -1,6 +1,8 @@
 package fin
 
 type IRouter interface {
+	Use(...HandlerFunc)
+
 	Handle(string, string, ...HandlerFunc)
 	ANY(string, ...HandlerFunc)
 	GET(string, ...HandlerFunc)
@@ -13,8 +15,11 @@ type IRouter interface {
 }
 
 type Router struct {
+	path string
+
 	engine *Engine
-	path   string
+
+	middlewares []HandlerFunc
 }
 
 // 检查Router是否实现了IRouter接口
@@ -24,8 +29,16 @@ var _ IRouter = &Router{}
 func (r *Router) handle(relativePath string, method string, h ...HandlerFunc) {
 	// 计算路由的绝对路径
 	path := r.path + relativePath
+	// 组合路由的中间件到handlers
+	handlers := make([]HandlerFunc, len(r.middlewares)+len(h))
+	copy(handlers, r.middlewares)
+	copy(handlers[len(r.middlewares):], h)
 	// 注册路由
-	r.engine.addRoute(path, method, h...)
+	r.engine.addRoute(path, method, handlers...)
+}
+
+func (r *Router) Use(middlewares ...HandlerFunc) {
+	r.middlewares = append(r.middlewares, middlewares...)
 }
 
 // Handle 注册一个新的路由函数
@@ -77,9 +90,13 @@ func (r *Router) ANY(relativePath string, h ...HandlerFunc) {
 func (r *Router) Group(relativePath string) *Router {
 	// 计算路由的绝对路径
 	path := r.path + relativePath
+	// 复制当前路由的中间件到下一级
+	middlewares := make([]HandlerFunc, len(r.middlewares))
+	copy(middlewares, r.middlewares)
 	router := &Router{
-		path:   path,
-		engine: r.engine,
+		path:        path,
+		engine:      r.engine,
+		middlewares: middlewares,
 	}
 
 	return router

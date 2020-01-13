@@ -18,7 +18,7 @@ type Engine struct {
 
 	server *fasthttp.Server
 
-	handlers trees
+	trees trees
 }
 
 var _ IEngine = &Engine{}
@@ -35,10 +35,10 @@ func New() *Engine {
 
 func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 	// 获取此方法下的所有路由函数map，不存在则新建
-	handlers := e.handlers.get(method)
+	handlers := e.trees.get(method)
 	if handlers == nil {
 		handlers = make(node)
-		e.handlers = append(e.handlers, tree{method: method, node: handlers})
+		e.trees = append(e.trees, tree{method: method, node: handlers})
 	}
 	handlers.addRoute(path, h...)
 }
@@ -46,7 +46,7 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
 	uri := string(fastCtx.Path())
 	method := string(fastCtx.Method())
-	tree := e.handlers.get(method)
+	tree := e.trees.get(method)
 	if tree == nil {
 		fastCtx.SetStatusCode(404)
 		fastCtx.WriteString("404 NOT FOUND")
