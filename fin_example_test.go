@@ -1,16 +1,16 @@
-package fin
+package fin_test
 
 import (
 	"io"
 	"net/http"
 	"testing"
 
-	"github.com/valyala/fasthttp"
+	"github.com/xsymphony/fin"
 )
 
 func TestNewRouter(t *testing.T) {
-	r := New()
-	r.ANY("/hello", func(ctx *fasthttp.RequestCtx) {
+	r := fin.New()
+	r.ANY("/hello", func(ctx *fin.Context) {
 		ctx.WriteString("hello")
 	})
 	go func() {
