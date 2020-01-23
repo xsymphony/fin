@@ -36,34 +36,34 @@ func New() *Engine {
 }
 
 func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
-	// 获取此方法下的所有路由函数树, 不存在则新建
-	tree := e.methodTrees.get(method)
-	if tree == nil {
-		tree = newTree(method)
-		e.methodTrees = append(e.methodTrees, tree)
+	// 获取此方法下的根节点, 不存在则新建
+	root := e.methodTrees.get(method)
+	if root == nil {
+		root = new(node)
+		e.methodTrees = append(e.methodTrees, &tree{method: method, root: root})
 	}
-	tree.addRoute(path, h...)
+	root.addRoute(path, h...)
 	log.Printf("[fin-debug]Register Method: %s | URL: %s", method, path)
 }
 
 func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
 	uri := string(fastCtx.Path())
 	method := string(fastCtx.Method())
-	tree := e.methodTrees.get(method)
-	if tree == nil {
+	root := e.methodTrees.get(method)
+	if root == nil {
 		fastCtx.SetStatusCode(404)
 		fastCtx.WriteString("404 NOT FOUND")
 		return
 	}
-	node := tree.search(uri)
-	if node == nil {
+	handlers := root.getValue(uri)
+	if handlers == nil {
 		fastCtx.SetStatusCode(404)
 		fastCtx.WriteString("404 NOT FOUND")
 		return
 	}
 	ctx := &Context{
 		RequestCtx: fastCtx,
-		chain:      node.chain,
+		chain:      handlers,
 		index:      -1,
 	}
 	ctx.Next()

@@ -1,6 +1,7 @@
 package fin
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -18,18 +19,18 @@ type testRequests []struct {
 	route      string
 }
 
-func checkRequests(t *testing.T, tree *tree, requests testRequests) {
+func checkRequests(t *testing.T, root *node, requests testRequests) {
 	for _, request := range requests {
-		node := tree.search(request.path)
-
-		if node == nil || node.chain == nil {
+		handlers := root.getValue(request.path)
+		fmt.Printf("path:%s, handlers:%+v\n", request.path, handlers)
+		if handlers == nil {
 			if !request.nilHandler {
 				t.Errorf("handle mismatch for route '%s': Expected non-nil handle", request.path)
 			}
 		} else if request.nilHandler {
 			t.Errorf("handle mismatch for route '%s': Expected nil handle", request.path)
 		} else {
-			node.chain[0](nil)
+			handlers[0](nil)
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route '%s': Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}
@@ -38,7 +39,7 @@ func checkRequests(t *testing.T, tree *tree, requests testRequests) {
 }
 
 func TestTree(t *testing.T) {
-	tree := newTree("GET")
+	root := new(node)
 
 	routes := [...]string{
 		"/hi",
@@ -54,10 +55,10 @@ func TestTree(t *testing.T) {
 		"/β",
 	}
 	for _, route := range routes {
-		tree.addRoute(route, fakeHandler(route))
+		root.addRoute(route, fakeHandler(route))
 	}
 
-	checkRequests(t, tree, testRequests{
+	checkRequests(t, root, testRequests{
 		{"/a", false, "/a"},
 		{"/", true, ""},
 		{"/hi", false, "/hi"},
