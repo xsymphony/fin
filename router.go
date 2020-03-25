@@ -87,16 +87,17 @@ func (r *Router) ANY(relativePath string, h ...HandlerFunc) {
 }
 
 // Group新建一个路由分组
-func (r *Router) Group(relativePath string) *Router {
+func (r *Router) Group(relativePath string, handlers ...HandlerFunc) *Router {
 	// 计算路由的绝对路径
 	path := r.path + relativePath
 	// 复制当前路由的中间件到下一级
-	middlewares := make([]HandlerFunc, len(r.middlewares))
-	copy(middlewares, r.middlewares)
+	middleware := make([]HandlerFunc, len(r.middlewares)+len(handlers))
+	copy(middleware[0:len(r.middlewares)], r.middlewares)
+	copy(middleware[len(r.middlewares):], handlers)
 	router := &Router{
 		path:        path,
 		engine:      r.engine,
-		middlewares: middlewares,
+		middlewares: middleware,
 	}
 
 	return router

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/xsymphony/fin"
@@ -25,26 +26,26 @@ func main() {
 	}
 
 	r := fin.New()
-	r.Use(hookFunc, timedFunc)
+	r.Use(hookFunc)
 	{
 		api := r.Group("/api")
 		{
-			v1 := api.Group("/v1")
+			v1 := api.Group("/v1", timedFunc)
 			v1.Use(func(ctx *fin.Context) {
 				fmt.Println("I'm only used in v1")
 				ctx.Next()
 			})
 			{
 				v1.GET("/hello/:name", func(ctx *fin.Context) {
-					name, _ := ctx.Params.Get("name")
-					fmt.Println(ctx.Params)
-					ctx.WriteString(fmt.Sprintf("hello %s", name))
+					name := ctx.Param("name")
+					age, _ := ctx.Query("age")
+					ctx.String(http.StatusOK, "hello %s %s", name, age)
 				})
 			}
 			v2 := api.Group("/v2")
 			{
 				v2.GET("/hello", func(ctx *fin.Context) {
-					ctx.WriteString("你好")
+					ctx.String(http.StatusOK, "你好")
 				})
 			}
 		}
