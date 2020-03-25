@@ -35,8 +35,10 @@ func main() {
 				ctx.Next()
 			})
 			{
-				v1.GET("/hello", func(ctx *fin.Context) {
-					ctx.WriteString("hello world")
+				v1.GET("/hello/:name", func(ctx *fin.Context) {
+					name, _ := ctx.Params.Get("name")
+					fmt.Println(ctx.Params)
+					ctx.WriteString(fmt.Sprintf("hello %s", name))
 				})
 			}
 			v2 := api.Group("/v2")

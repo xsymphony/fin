@@ -21,16 +21,16 @@ type testRequests []struct {
 
 func checkRequests(t *testing.T, root *node, requests testRequests) {
 	for _, request := range requests {
-		handlers := root.getValue(request.path)
-		fmt.Printf("path:%s, handlers:%+v\n", request.path, handlers)
-		if handlers == nil {
+		value := root.getValue(request.path, nil)
+		fmt.Printf("path:%s, node:%+v\n", request.path, value)
+		if value.handlers == nil {
 			if !request.nilHandler {
 				t.Errorf("handle mismatch for route '%s': Expected non-nil handle", request.path)
 			}
 		} else if request.nilHandler {
 			t.Errorf("handle mismatch for route '%s': Expected nil handle", request.path)
 		} else {
-			handlers[0](nil)
+			value.handlers[0](nil)
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route '%s': Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}
@@ -55,7 +55,7 @@ func TestTree(t *testing.T) {
 		"/β",
 	}
 	for _, route := range routes {
-		root.addRoute(route, fakeHandler(route))
+		root.addRoute(route, []HandlerFunc{fakeHandler(route)})
 	}
 
 	checkRequests(t, root, testRequests{

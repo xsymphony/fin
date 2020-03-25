@@ -20,7 +20,7 @@ type Engine struct {
 
 	server *fasthttp.Server
 
-	methodTrees trees
+	methodTrees methodTrees
 }
 
 var _ IEngine = &Engine{}
@@ -40,9 +40,9 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 	root := e.methodTrees.get(method)
 	if root == nil {
 		root = new(node)
-		e.methodTrees = append(e.methodTrees, &tree{method: method, root: root})
+		e.methodTrees = append(e.methodTrees, methodTree{method: method, root: root})
 	}
-	root.addRoute(path, h...)
+	root.addRoute(path, h)
 	log.Printf("[fin-debug]Register Method: %s | URL: %s", method, path)
 }
 
@@ -55,17 +55,19 @@ func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
 		fastCtx.WriteString("404 NOT FOUND")
 		return
 	}
-	handlers := root.getValue(uri)
-	if handlers == nil {
+	ctx := &Context{
+		RequestCtx: fastCtx,
+		index:      -1,
+		Params:     Params{},
+	}
+	value := root.getValue(uri, ctx.Params)
+	if value.handlers == nil {
 		fastCtx.SetStatusCode(404)
 		fastCtx.WriteString("404 NOT FOUND")
 		return
 	}
-	ctx := &Context{
-		RequestCtx: fastCtx,
-		chain:      handlers,
-		index:      -1,
-	}
+	ctx.chain = value.handlers
+	ctx.Params = value.params
 	ctx.Next()
 }
 
