@@ -1,6 +1,8 @@
 package fin
 
 import (
+	"log"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -18,7 +20,7 @@ type Engine struct {
 
 	server *fasthttp.Server
 
-	trees trees
+	methodTrees methodTrees
 }
 
 var _ IEngine = &Engine{}
@@ -34,41 +36,44 @@ func New() *Engine {
 }
 
 func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
-	// 获取此方法下的所有路由函数map，不存在则新建
-	handlers := e.trees.get(method)
-	if handlers == nil {
-		handlers = make(node)
-		e.trees = append(e.trees, tree{method: method, node: handlers})
+	// 获取此方法下的根节点, 不存在则新建
+	root := e.methodTrees.get(method)
+	if root == nil {
+		root = new(node)
+		e.methodTrees = append(e.methodTrees, methodTree{method: method, root: root})
 	}
-	handlers.addRoute(path, h...)
+	root.addRoute(path, h)
+	log.Printf("[fin-debug]Register Method: %s | URL: %s", method, path)
 }
 
-func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
+func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
 	uri := string(fastCtx.Path())
 	method := string(fastCtx.Method())
-	tree := e.trees.get(method)
-	if tree == nil {
-		fastCtx.SetStatusCode(404)
-		fastCtx.WriteString("404 NOT FOUND")
-		return
-	}
-	chain, ok := tree[uri]
-	if !ok {
+	root := e.methodTrees.get(method)
+	if root == nil {
 		fastCtx.SetStatusCode(404)
 		fastCtx.WriteString("404 NOT FOUND")
 		return
 	}
 	ctx := &Context{
 		RequestCtx: fastCtx,
-		chain:      chain,
 		index:      -1,
+		Params:     Params{},
 	}
+	value := root.getValue(uri, ctx.Params)
+	if value.handlers == nil {
+		fastCtx.SetStatusCode(404)
+		fastCtx.WriteString("404 NOT FOUND")
+		return
+	}
+	ctx.chain = value.handlers
+	ctx.Params = value.params
 	ctx.Next()
 }
 
 func (e *Engine) Run(addr string) error {
 	server := &fasthttp.Server{
-		Handler: e.dispatch,
+		Handler: e.Dispatch,
 	}
 	e.server = server
 	return server.ListenAndServe(addr)

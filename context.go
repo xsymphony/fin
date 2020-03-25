@@ -9,6 +9,8 @@ type Context struct {
 
 	index int8
 	chain []HandlerFunc
+
+	Params   Params
 }
 
 func (c *Context) Next() {
