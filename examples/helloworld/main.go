@@ -25,8 +25,10 @@ func main() {
 		fmt.Printf("[timedFunc]url: %s, used: %d\n", string(ctx.Path()), time.Now().Sub(start))
 	}
 
-	r := fin.New()
-	r.Use(hookFunc)
+	r := fin.New(hookFunc)
+	r.Apply(fin.HandleNotFound(func(ctx *fin.Context) {
+		ctx.String(404, "%s NOT FOUND", ctx.Path())
+	}))
 	{
 		api := r.Group("/api")
 		{

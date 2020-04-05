@@ -2,18 +2,12 @@ package fin
 
 import (
 	"log"
+	"os"
 
 	"github.com/valyala/fasthttp"
 )
 
 type HandlerFunc func(ctx *Context)
-
-type IEngine interface {
-	IRouter
-
-	Run(string) error
-	Shutdown() error
-}
 
 type Engine struct {
 	Router
@@ -21,18 +15,33 @@ type Engine struct {
 	server *fasthttp.Server
 
 	methodTrees methodTrees
+
+	HandleNotFound HandlerFunc
 }
 
-var _ IEngine = &Engine{}
-
-func New() *Engine {
+func New(handlers ...HandlerFunc) *Engine {
 	engine := &Engine{
 		Router: Router{
 			path: "",
 		},
+		HandleNotFound: func(ctx *Context) {
+			ctx.String(fasthttp.StatusNotFound, "404 NOT FOUND")
+			return
+		},
+	}
+	engine.server = &fasthttp.Server{
+		Handler: engine.Dispatch,
+		Name: "fin",
 	}
 	engine.Router.engine = engine
+	engine.Router.middlewares = append(engine.Router.middlewares, handlers...)
 	return engine
+}
+
+func (e *Engine) Apply(options ...Option) {
+	for _, option := range options {
+		option(e)
+	}
 }
 
 func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
@@ -49,21 +58,19 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
 	uri := string(fastCtx.Path())
 	method := string(fastCtx.Method())
-	root := e.methodTrees.get(method)
-	if root == nil {
-		fastCtx.SetStatusCode(404)
-		fastCtx.WriteString("404 NOT FOUND")
-		return
-	}
 	ctx := &Context{
 		RequestCtx: fastCtx,
 		index:      -1,
 		Params:     Params{},
 	}
+	root := e.methodTrees.get(method)
+	if root == nil {
+		e.HandleNotFound(ctx)
+		return
+	}
 	value := root.getValue(uri, ctx.Params)
 	if value.handlers == nil {
-		fastCtx.SetStatusCode(404)
-		fastCtx.WriteString("404 NOT FOUND")
+		e.HandleNotFound(ctx)
 		return
 	}
 	ctx.chain = value.handlers
@@ -72,11 +79,15 @@ func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
 }
 
 func (e *Engine) Run(addr string) error {
-	server := &fasthttp.Server{
-		Handler: e.Dispatch,
-	}
-	e.server = server
-	return server.ListenAndServe(addr)
+	return e.server.ListenAndServe(addr)
+}
+
+func (e *Engine) RunUnix(addr string, mode os.FileMode) error {
+	return e.server.ListenAndServeUNIX(addr, mode)
+}
+
+func (e *Engine) RunTLS(addr, certFile, keyFile string) error {
+	return e.server.ListenAndServeTLS(addr, certFile, keyFile)
 }
 
 func (e *Engine) Shutdown() error {
