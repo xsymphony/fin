@@ -30,6 +30,8 @@ func main() {
 		ctx.String(404, "%s NOT FOUND", ctx.Path())
 	}))
 	{
+		r.Static("/files", ".")
+
 		api := r.Group("/api")
 		{
 			v1 := api.Group("/v1", timedFunc)
