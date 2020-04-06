@@ -67,6 +67,12 @@ func main() {
 	automaton.Build()
 
 	r := fin.New()
+	r.Apply(fin.HandleNotFound(func(c *fin.Context) {
+		c.JSONAbort(http.StatusNotFound, map[string]interface{}{
+			"code":    404,
+			"message": "not found",
+		})
+	}))
 	{
 		r.POST("/api/v1/replace", replaceWord)
 	}

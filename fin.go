@@ -1,6 +1,7 @@
 package fin
 
 import (
+	"html/template"
 	"log"
 	"os"
 	"sync"
@@ -15,12 +16,14 @@ type Engine struct {
 
 	HandleNotFound HandlerFunc
 
-	server *fasthttp.Server
-	methodTrees methodTrees
-	ctxPool sync.Pool
+	server        *fasthttp.Server
+	methodTrees   methodTrees
+	ctxPool       sync.Pool
+	htmlTemplates *template.Template
+	funcMap       template.FuncMap
 }
 
-func New(handlers ...HandlerFunc) *Engine {
+func New() *Engine {
 	engine := &Engine{
 		Router: Router{
 			path: "",
@@ -29,16 +32,16 @@ func New(handlers ...HandlerFunc) *Engine {
 			ctx.String(fasthttp.StatusNotFound, "404 NOT FOUND")
 			return
 		},
+		funcMap: template.FuncMap{},
 	}
 	engine.ctxPool.New = func() interface{} {
 		return &Context{}
 	}
 	engine.server = &fasthttp.Server{
-		Handler: engine.Dispatch,
-		Name: "fin",
+		Handler: engine.dispatch,
+		Name:    "fin",
 	}
 	engine.Router.engine = engine
-	engine.Router.middlewares = append(engine.Router.middlewares, handlers...)
 	return engine
 }
 
@@ -46,6 +49,14 @@ func (e *Engine) Apply(options ...Option) {
 	for _, option := range options {
 		option(e)
 	}
+}
+
+func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
+	e.funcMap = funcMap
+}
+
+func (e *Engine) LoadHTMLGlob(pattern string) {
+	e.htmlTemplates = template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 }
 
 func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
@@ -59,8 +70,9 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 	log.Printf("[fin-debug]Register Method: %s | URL: %s", method, path)
 }
 
-func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
+func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
 	ctx := e.ctxPool.Get().(*Context)
+	ctx.engine = e
 	ctx.RequestCtx = fastCtx
 	ctx.reset()
 

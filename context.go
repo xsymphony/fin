@@ -12,8 +12,9 @@ const abortIndex = 2<<6 - 1
 type Context struct {
 	*fasthttp.RequestCtx
 
-	index int8
-	chain []HandlerFunc
+	engine *Engine
+	index  int8
+	chain  []HandlerFunc
 
 	Params Params
 }
@@ -59,7 +60,8 @@ func (c *Context) String(code int, format string, values ...interface{}) {
 }
 
 func (c *Context) JSON(code int, obj interface{}) {
-	c.Response.Header.Set("Content-type", "application/json")
+	c.Response.Header.Set("Content-Type", "application/json")
+	c.SetStatusCode(code)
 	d, err := json.Marshal(obj)
 	if err != nil {
 		return
@@ -72,4 +74,12 @@ func (c *Context) JSON(code int, obj interface{}) {
 func (c *Context) JSONAbort(code int, obj interface{}) {
 	c.JSON(code, obj)
 	c.Abort()
+}
+
+func (c *Context) HTML(code int, name string, data interface{}) {
+	c.Response.Header.Set("Content-Type", "text/html")
+	c.SetStatusCode(code)
+	if err := c.engine.htmlTemplates.ExecuteTemplate(c.RequestCtx, name, data); err != nil {
+		c.Error(err.Error(), fasthttp.StatusInternalServerError)
+	}
 }
