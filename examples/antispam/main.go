@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"github.com/xsymphony/ac"
 	"github.com/xsymphony/fin"
@@ -17,14 +18,12 @@ type replaceSensitiveRequest struct {
 func replaceWord(c *fin.Context) {
 	var req replaceSensitiveRequest
 	if err := json.Unmarshal(c.Request.Body(), &req); err != nil {
-		c.SetStatusCode(499)
-		c.WriteString("param error")
+		c.String(http.StatusBadRequest, "param error")
 		return
 	}
-	c.Response.Header.Set("Content-type", "application/json")
 	words, index := automaton.Find(req.Sentence)
 	if len(index) == 0 {
-		resp, _ := json.Marshal(map[string]interface{}{
+		c.JSON(http.StatusOK, map[string]interface{}{
 			"code":    0,
 			"message": "ok",
 			"data": map[string]interface{}{
@@ -33,7 +32,6 @@ func replaceWord(c *fin.Context) {
 				"matched":  false,
 			},
 		})
-		c.Write(resp)
 		return
 	}
 	symbol := []rune(req.Symbol)[0]
@@ -51,7 +49,7 @@ func replaceWord(c *fin.Context) {
 			cursor += 2
 		}
 	}
-	resp, _ := json.Marshal(map[string]interface{}{
+	c.JSON(http.StatusOK, map[string]interface{}{
 		"code":    0,
 		"message": "ok",
 		"data": map[string]interface{}{
@@ -59,7 +57,6 @@ func replaceWord(c *fin.Context) {
 			"matched":  true,
 		},
 	})
-	c.Write(resp)
 }
 
 func main() {
