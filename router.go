@@ -133,22 +133,21 @@ func (r *Router) Static(relativePath string, dir string) {
 		AcceptByteRange: true,
 		Compress:        false,
 	}
-	handler := r.createStaticHandler(dir, fs)
+	handler := r.createStaticHandler(fs)
 	urlPattern := path.Join(relativePath, "/*filepath")
-	// Register GET handlers
+
 	r.GET(urlPattern, handler)
 	r.HEAD(urlPattern, handler)
 }
 
-func (r *Router) createStaticHandler(dir string, fs *fasthttp.FS) HandlerFunc {
+func (r *Router) createStaticHandler(fs *fasthttp.FS) HandlerFunc {
 	h := fs.NewRequestHandler()
 	return func(c *Context) {
 		file := c.Param("filepath")
 		if len(file) == 0 || file[0] != '/' {
-			// extend relative path to absolute path
 			var err error
-			if _, err = filepath.Abs(file); err != nil {
-				c.String(fasthttp.StatusNotFound, "NOT FOUND")
+			if file, err = filepath.Abs(file); err != nil {
+				c.engine.HandleNotFound(c)
 				return
 			}
 		}

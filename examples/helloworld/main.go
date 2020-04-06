@@ -8,8 +8,8 @@ import (
 	"github.com/xsymphony/fin"
 )
 
-func main() {
-	hookFunc := func(ctx *fin.Context) {
+var (
+	logger = func(ctx *fin.Context) {
 		// 在执行下个handler函数之前打印请求信息
 		fmt.Println("start serve request: ", string(ctx.Path()))
 		// 调用Next()执行后面的handler函数
@@ -18,40 +18,38 @@ func main() {
 		fmt.Println("after serve request: ", string(ctx.Path()))
 	}
 
-	timedFunc := func(ctx *fin.Context) {
+	timer = func(ctx *fin.Context) {
 		fmt.Println("[timedFunc]start")
 		start := time.Now()
 		ctx.Next()
 		fmt.Printf("[timedFunc]url: %s, used: %d\n", string(ctx.Path()), time.Now().Sub(start))
 	}
+)
 
-	r := fin.New(hookFunc)
-	r.Apply(fin.HandleNotFound(func(ctx *fin.Context) {
-		ctx.String(404, "%s NOT FOUND", ctx.Path())
+func main() {
+	r := fin.New()
+	r.Use(logger, timer)
+	r.Apply(fin.HandleNotFound(func(c *fin.Context) {
+		c.HTML(http.StatusNotFound, "404.html", map[string]interface{}{
+			"path": string(c.Path()),
+		})
 	}))
+	r.LoadHTMLGlob("templates/*")
 	{
-		r.Static("/files", ".")
-
-		api := r.Group("/api")
+		r.Static("/assets", "./static")
+		r.GET("/index", func(c *fin.Context) {
+			c.HTML(http.StatusOK, "index.html", nil)
+		})
+		v1 := r.Group("/api")
 		{
-			v1 := api.Group("/v1", timedFunc)
-			v1.Use(func(ctx *fin.Context) {
-				fmt.Println("I'm only used in v1")
-				ctx.Next()
+			v1.GET("/echo/:name", func(c *fin.Context) {
+				name := c.Param("name")
+				age, _ := c.Query("age")
+				c.JSON(http.StatusOK, map[string]interface{}{
+					"name": name,
+					"age":  age,
+				})
 			})
-			{
-				v1.GET("/hello/:name", func(ctx *fin.Context) {
-					name := ctx.Param("name")
-					age, _ := ctx.Query("age")
-					ctx.String(http.StatusOK, "hello %s %s", name, age)
-				})
-			}
-			v2 := api.Group("/v2")
-			{
-				v2.GET("/hello", func(ctx *fin.Context) {
-					ctx.String(http.StatusOK, "你好")
-				})
-			}
 		}
 	}
 	r.Run(":8080")
