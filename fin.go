@@ -3,6 +3,7 @@ package fin
 import (
 	"log"
 	"os"
+	"sync"
 
 	"github.com/valyala/fasthttp"
 )
@@ -12,11 +13,11 @@ type HandlerFunc func(ctx *Context)
 type Engine struct {
 	Router
 
-	server *fasthttp.Server
-
-	methodTrees methodTrees
-
 	HandleNotFound HandlerFunc
+
+	server *fasthttp.Server
+	methodTrees methodTrees
+	ctxPool sync.Pool
 }
 
 func New(handlers ...HandlerFunc) *Engine {
@@ -28,6 +29,9 @@ func New(handlers ...HandlerFunc) *Engine {
 			ctx.String(fasthttp.StatusNotFound, "404 NOT FOUND")
 			return
 		},
+	}
+	engine.ctxPool.New = func() interface{} {
+		return &Context{}
 	}
 	engine.server = &fasthttp.Server{
 		Handler: engine.Dispatch,
@@ -56,13 +60,18 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 }
 
 func (e *Engine) Dispatch(fastCtx *fasthttp.RequestCtx) {
-	uri := string(fastCtx.Path())
-	method := string(fastCtx.Method())
-	ctx := &Context{
-		RequestCtx: fastCtx,
-		index:      -1,
-		Params:     Params{},
-	}
+	ctx := e.ctxPool.Get().(*Context)
+	ctx.RequestCtx = fastCtx
+	ctx.reset()
+
+	e.handleHTTPRequest(ctx)
+
+	e.ctxPool.Put(ctx)
+}
+
+func (e *Engine) handleHTTPRequest(ctx *Context) {
+	uri := string(ctx.RequestCtx.Path())
+	method := string(ctx.RequestCtx.Method())
 	root := e.methodTrees.get(method)
 	if root == nil {
 		e.HandleNotFound(ctx)

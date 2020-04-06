@@ -18,6 +18,12 @@ type Context struct {
 	Params Params
 }
 
+func (c *Context) reset() {
+	c.index = -1
+	c.chain = nil
+	c.Params = c.Params[0:0]
+}
+
 func (c *Context) Next() {
 	c.index++
 	for s := int8(len(c.chain)); c.index < s; c.index++ {
