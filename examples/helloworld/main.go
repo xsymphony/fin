@@ -27,7 +27,7 @@ var (
 )
 
 func main() {
-	r := fin.New()
+	r := fin.Default()
 	r.Use(logger, timer)
 	r.Apply(fin.HandleNotFound(func(c *fin.Context) {
 		c.HTML(http.StatusNotFound, "404.html", map[string]interface{}{
