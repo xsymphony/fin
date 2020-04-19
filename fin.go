@@ -2,11 +2,11 @@ package fin
 
 import (
 	"html/template"
-	"log"
 	"os"
 	"sync"
 
 	"github.com/valyala/fasthttp"
+	"go.uber.org/zap"
 )
 
 type HandlerFunc func(ctx *Context)
@@ -22,7 +22,7 @@ type Engine struct {
 	htmlTemplates *template.Template
 	funcMap       template.FuncMap
 
-	logger *log.Logger
+	logger *zap.SugaredLogger
 }
 
 func New() *Engine {
@@ -35,7 +35,6 @@ func New() *Engine {
 			return
 		},
 		funcMap: template.FuncMap{},
-		logger:  log.New(os.Stderr, "[fin]", log.LstdFlags|log.LstdFlags),
 	}
 	engine.ctxPool.New = func() interface{} {
 		return &Context{}
@@ -44,6 +43,8 @@ func New() *Engine {
 		Handler: engine.dispatch,
 		Name:    "fin",
 	}
+	logger, _ := zap.NewDevelopment()
+	engine.logger = logger.Sugar()
 	engine.Router.engine = engine
 	return engine
 }
@@ -65,7 +66,7 @@ func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
 }
 
 func (e *Engine) LoadHTMLGlob(pattern string) {
-	e.logger.Printf("set html template pattern: %s", pattern)
+	e.logger.Debugf("set html template pattern: %s", pattern)
 	e.htmlTemplates = template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 }
 
@@ -77,7 +78,7 @@ func (e *Engine) addRoute(path string, method string, h ...HandlerFunc) {
 		e.methodTrees = append(e.methodTrees, methodTree{method: method, root: root})
 	}
 	root.addRoute(path, h)
-	e.logger.Printf("register Method: %-6s URL: %s", method, path)
+	e.logger.Debugf("register Method: %-6s URL: %s", method, path)
 }
 
 func (e *Engine) dispatch(fastCtx *fasthttp.RequestCtx) {
@@ -110,21 +111,22 @@ func (e *Engine) handleHTTPRequest(ctx *Context) {
 }
 
 func (e *Engine) Run(addr string) error {
-	e.logger.Printf("run %s", addr)
+	e.logger.Debugf("run %s", addr)
 	return e.server.ListenAndServe(addr)
 }
 
 func (e *Engine) RunUnix(addr string, mode os.FileMode) error {
-	e.logger.Printf("runUnix %s", addr)
+	e.logger.Debugf("runUnix %s", addr)
 	return e.server.ListenAndServeUNIX(addr, mode)
 }
 
 func (e *Engine) RunTLS(addr, certFile, keyFile string) error {
-	e.logger.Printf("runTLS %s", addr)
+	e.logger.Debugf("runTLS %s", addr)
 	return e.server.ListenAndServeTLS(addr, certFile, keyFile)
 }
 
 func (e *Engine) Shutdown() error {
-	e.logger.Println("receive to shutdown")
+	defer e.logger.Sync()
+	e.logger.Debug("receive to shutdown")
 	return e.server.Shutdown()
 }
